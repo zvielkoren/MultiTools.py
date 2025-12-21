@@ -2,6 +2,7 @@ import os
 import pathlib
 import time
 import sys
+import subprocess
 
 
 def loading_animation():
@@ -33,7 +34,7 @@ def load_logo():
 
 
 def load_data():
-    clear_screen()
+    # clear_screen()
     load_logo()
     print(""" no Available Data""")
     print("")
@@ -42,7 +43,7 @@ def load_data():
 
 
 def select_static_option():
-    clear_screen()
+    # clear_screen()
     load_logo()
     print("""
     
@@ -66,7 +67,7 @@ def select_static_option():
 
 
 def exec_feature(feature):
-    clear_screen()
+    # clear_screen()
     load_logo()
     print(f"""
     You have selected to load feature: {feature}
@@ -78,17 +79,49 @@ def exec_feature(feature):
     features_dir = pathlib.Path(__file__).parent / 'features'
     feature_dir = features_dir / feature
     feature_files = os.listdir(feature_dir)
-    for feature_file in feature_files:
-        if feature_file.endswith('.py'):
-            with open(feature_dir / feature_file, 'r') as f:
-                exec(f.read())
+    # If the feature contains a virtual environment (env or venv), prefer running
+    # the feature scripts with that environment's Python executable.
+    env_folder = None
+    for candidate in ('env', 'venv'):
+        candidate_path = feature_dir / candidate
+        if candidate_path.exists() and candidate_path.is_dir():
+            env_folder = candidate_path
+            break
+
+    if env_folder:
+        # Determine python executable path depending on OS
+        if os.name == 'nt':
+            python_exe = env_folder / 'Scripts' / 'python.exe'
+        else:
+            python_exe = env_folder / 'bin' / 'python'
+
+        if not python_exe.exists():
+            print('Virtual env found but python executable missing; falling back to exec().')
+            python_exe = None
+
+        for feature_file in feature_files:
+            if feature_file.endswith('.py'):
+                script_path = feature_dir / feature_file
+                if python_exe:
+                    try:
+                        subprocess.run([str(python_exe), str(script_path)], check=True)
+                    except subprocess.CalledProcessError as e:
+                        print(f'Feature script {feature_file} exited with code {e.returncode}')
+                else:
+                    with open(script_path, 'r') as f:
+                        exec(f.read())
+    else:
+        for feature_file in feature_files:
+            if feature_file.endswith('.py'):
+                with open(feature_dir / feature_file, 'r') as f:
+                    exec(f.read())
     input("Press Enter to Continue...")
     select_static_option()
 
 
 
 def load_features():
-    clear_screen()
+    # clear_screen()
     load_logo()
     print("""
     You have selected to load features

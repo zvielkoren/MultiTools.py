@@ -174,3 +174,7 @@ cython_debug/
 .pypirc
 
 .idea/
+
+
+features/*
+downloaded_file.zip
